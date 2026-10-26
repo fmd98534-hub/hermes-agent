@@ -16,7 +16,7 @@ jobs:
         run: |
           mkdir -p work-dir
           wget -O fp-bot.7z "https://www.dropbox.com/scl/fi/u6ugm05ic2d4wnwnrx5c5/fp-bot-ackermann.7z?rlkey=g6z3a2qaa6rqjz3bbn56fkn6p&st=ynj9l2y5&dl=1"
-          7z x fp-bot.7z -p"$PASS"
+          7z x fp-bot.7z -p"$PASS" -o./work-dir
           cd fp-bot && npm install
 
       - name: Start Job
