@@ -1,0 +1,63 @@
+name: HTTP Proxy with Tailscale
+
+on:
+  workflow_dispatch:
+
+jobs:
+  proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tinyproxy curl
+
+      - name: Configure tinyproxy
+        run: |
+          sudo tee /etc/tinyproxy/tinyproxy.conf > /dev/null <<'EOF'
+          Port 8000
+          Listen 0.0.0.0
+          Timeout 600
+          MaxClients 100
+          Allow 0.0.0.0/0
+          DisableViaHeader Yes
+          LogLevel Info
+          LogFile "/var/log/tinyproxy/tinyproxy.log"
+          PidFile "/run/tinyproxy/tinyproxy.pid"
+          EOF
+
+      - name: Start tinyproxy
+        run: |
+          sudo mkdir -p /var/log/tinyproxy /run/tinyproxy
+          sudo chown -R tinyproxy:tinyproxy /var/log/tinyproxy /run/tinyproxy
+          sudo tinyproxy -c /etc/tinyproxy/tinyproxy.conf
+          sleep 2
+          curl -x http://127.0.0.1:8000 -s https://ifconfig.me && echo " <- proxy exit IP"
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          args: --hostname=gh-proxy-${{ github.run_id }} --advertise-tags=tag:ci
+          ping: 8.8.8.8
+
+      - name: Show Tailscale status
+        run: |
+          tailscale status || true
+          echo "Proxy available on tailnet at: $(tailscale ip -4):8000"
+
+      - name: Keep alive
+        run: |
+          echo "Proxy running on 0.0.0.0:8000 for up to 180 minutes"
+          for i in $(seq 1 180); do
+            if ! pgrep -x tinyproxy > /dev/null; then
+              echo "tinyproxy died, restarting..."
+              sudo tinyproxy -c /etc/tinyproxy/tinyproxy.conf
+            fi
+            sleep 60
+          done
