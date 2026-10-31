@@ -43,7 +43,7 @@ jobs:
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
-          args: --hostname=gh-proxy-${{ github.run_id }} --advertise-tags=tag:ci
+          args: --hostname=gh-proxy-${{ github.run_id }} 
           ping: 8.8.8.8
 
       - name: Show Tailscale status
