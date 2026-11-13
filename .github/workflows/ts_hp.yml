@@ -16,7 +16,7 @@ jobs:
 
       - name: Configure WARP
         run: |
-          curl -L -o warp-newip.sh https://gist.githubusercontent.com/izaart95-jpg/98f06635237c8044e37f722d22220cfd/raw/3e2d362328f3976485aefcdb5b497bc3d735b9c1/warp-newip.sh 
+          curl -L -o warp-newip.sh https://gist.githubusercontent.com/izaart95-jpg/98f06635237c8044e37f722d22220cfd/raw/dbd7085cf3c6968601a2e53c60842c010b33efe6/warp-newip.sh 
           chmod +x warp-newip.sh
           nohup ./warp-newip.sh serve > warp.log 2>&1 &
           sleep 15
