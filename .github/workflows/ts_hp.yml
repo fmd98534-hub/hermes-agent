@@ -1,4 +1,4 @@
-name: HTTP Proxy with Tailscale
+name: Warp Proxy with Tailscale
 
 on:
   workflow_dispatch:
@@ -9,41 +9,24 @@ jobs:
     timeout-minutes: 180
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y tinyproxy curl
+          sudo apt-get install -y curl wget
 
-      - name: Configure tinyproxy
+      - name: Configure WARP
         run: |
-          sudo tee /etc/tinyproxy/tinyproxy.conf > /dev/null <<'EOF'
-          Port 8000
-          Listen 0.0.0.0
-          Timeout 600
-          MaxClients 100
-          Allow 0.0.0.0/0
-          DisableViaHeader Yes
-          LogLevel Info
-          LogFile "/var/log/tinyproxy/tinyproxy.log"
-          PidFile "/run/tinyproxy/tinyproxy.pid"
-          EOF
-
-      - name: Start tinyproxy
-        run: |
-          sudo mkdir -p /var/log/tinyproxy /run/tinyproxy
-          sudo chown -R tinyproxy:tinyproxy /var/log/tinyproxy /run/tinyproxy
-          sudo tinyproxy -c /etc/tinyproxy/tinyproxy.conf
-          sleep 2
-          curl -x http://127.0.0.1:8000 -s https://ifconfig.me && echo " <- proxy exit IP"
+          curl -L -o warp-newip.sh https://gist.githubusercontent.com/izaart95-jpg/98f06635237c8044e37f722d22220cfd/raw/3e2d362328f3976485aefcdb5b497bc3d735b9c1/warp-newip.sh 
+          chmod +x warp-newip.sh
+          nohup ./warp-newip.sh serve > warp.log 2>&1 &
+          sleep 15
+          curl -s https://www.cloudflare.com/cdn-cgi/trace | grep warp || echo "WARP check failed"
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
-          args: --hostname=gh-proxy-${{ github.run_id }} 
+          args: --hostname=gh-proxy-${{ github.run_id }}
           ping: 8.8.8.8
 
       - name: Show Tailscale status
@@ -53,11 +36,4 @@ jobs:
 
       - name: Keep alive
         run: |
-          echo "Proxy running on 0.0.0.0:8000 for up to 180 minutes"
-          for i in $(seq 1 180); do
-            if ! pgrep -x tinyproxy > /dev/null; then
-              echo "tinyproxy died, restarting..."
-              sudo tinyproxy -c /etc/tinyproxy/tinyproxy.conf
-            fi
-            sleep 60
-          done
+          sleep 10800
