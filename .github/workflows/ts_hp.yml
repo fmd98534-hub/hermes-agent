@@ -36,4 +36,4 @@ jobs:
 
       - name: Keep alive
         run: |
-          sleep 10800
+          sleep 108000
