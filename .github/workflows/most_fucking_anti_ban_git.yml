@@ -9,6 +9,13 @@ jobs:
     timeout-minutes: 350
 
     steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          args: --hostname=win-${{ github.run_id }}
+          ping: 8.8.8.8
+        
       - name: Download and run script
         shell: powershell
         run: |
